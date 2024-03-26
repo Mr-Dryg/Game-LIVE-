@@ -1,5 +1,7 @@
 from random import random
-import ctypes  # для вывода в консоль на windows 10
+import ctypes  # для вывода в консоль на windows
+
+
 kernel32 = ctypes.windll.kernel32
 kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
 
@@ -28,7 +30,7 @@ class Field:
         for line_id, line in enumerate(self.field):
             for el_id, el in enumerate(line):
                 self.new_field[line_id][el_id] = el.fate(self.neighbors(line_id, el_id))
-        # Обновление поля
+        # Перенос значений из нового поля в основное
         self.field = ()
         for line in self.new_field:
             self.field += (tuple(line),)
@@ -81,11 +83,20 @@ class Cell:
     def __init__(self):
         self.cage = '#'
 
+    def birth(self):
+        prob = random()
+        if prob < 0.75:
+            return Civilian()
+        elif prob < 0.85:
+            return Maniac()
+        else:
+            return Frank()
+
     def fate(self, n):
-        if n.count('*') == 3:
-            return Civilian()
+        if n.count('Ф') + n.count('М') + n.count('*') == 3:
+            return self.birth()
         elif 'Ф' in n and random() < 0.20:
-            return Civilian()
+            return self.birth()
         else:
             return Cell()
 
@@ -99,7 +110,7 @@ class Civilian(Cell):
         self.cage = '*'
 
     def fate(self, n):
-        if n.count('*') == 3 or n.count('*') == 2:
+        if n.count('Ф') + n.count('М') + n.count('*') == 3 or n.count('Ф') + n.count('М') + n.count('*') == 2:
             if 'М' in n and random() < 0.25:
                 return Cell()
             else:
@@ -117,7 +128,7 @@ class Maniac(Cell):
         self.cage = 'М'
 
     def fate(self, n):
-        if 'Ф' not in n and '*' not in n and 'М' not in n:
+        if n.count('#') == len(n):
             return Cell()
         elif 'М' in n and random() < 0.25:
             return Cell()
@@ -145,11 +156,18 @@ class Frank(Cell):
         return self.cage
 
 
-N, M = map(int, input('Введите размеры поля: ').split())
+N, M = map(int, input('Введите размеры поля (Ш В): ').split())
 field = Field(N, M)
 era = 0
-while input('Нажмите на Enter для перехода на следующую эпоху') == '':
+while True:
     era += 1
     print(f'\nЭпоха № {era}\n')
     print(field, f"\033[0m{''}")
-    next(field)
+    inp = input('Нажмите \033[4mEnter\033[0m для перехода на следующую эпоху. '
+                'Зажмите его для быстрого движения по эпохам. '
+                'Ведите \033[4mВЫХОД\033[0m, если хотите выйти: ')
+    if inp == '':
+        next(field)
+    elif inp == 'ВЫХОД':
+        print("\n\033[35mВЫ ВЫШЛИ ИЗ ИГРЫ\n\033[0m")
+        break
